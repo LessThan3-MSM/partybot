@@ -1,0 +1,12 @@
+{
+  "name": "greeter-bot",
+  "version": "1.0.0",
+  "description": "PARTY! bot.",
+  "main": "partybot.js",
+  "author": "Klossi",
+  "dependencies": {
+    "cron": "^1.7.1",
+    "discord.io": "github:woor/discord.io#gateway_v6",
+    "winston": "^3.2.1"
+  }
+}
