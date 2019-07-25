@@ -1,7 +1,7 @@
 /**
 * Application: partybot.js
-* Version: 1.0
-* Date: 05/20/2019
+* Version: 1.1
+* Date: 07/20/2019
 * Author: Liz (Klossi)
 **/
 
@@ -23,7 +23,7 @@ var bot = new Discord.Client({
 
 /***Global Variables***/
 var serverTimeZone = 'America/Anchorage'; //This is Scania's Server time. Modify as needed.
-var motivationLocation = '/MSM/PartyBot/motivations.txt'; //Update this based on your server path.
+var motivationLocation = '/home/ubuntu/bots/partybot/motivations.txt'; //Update this based on your server path.
 
 var eventTime = false; //if there is a server event going on. Used by timer functions.
 var timerChannel; //the channel to send timer messages to. Initialized on first message.
@@ -138,6 +138,11 @@ bot.on('ready', function (evt) {
 	prepareMotivationList();
 });
 
+bot.on('disconnect', function(erMsg, code) {
+    console.log('----- Bot disconnected from Discord with code', code, 'for reason:', erMsg, '-----');
+    bot.connect();
+});
+
 /** Bot Listener **/
 
 /*
@@ -231,6 +236,16 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 			case 'toggleevent':
 				toggleEvent(channelID);
 				break;
+			case 'expand':
+				if(args[1] == undefined || args[2] == undefined){
+					sendMsg(channelID, ':no_entry: Usage: partyexpand {Party ID} {Party Size}.');
+				}else{
+					expandParty(channelID, args[1], args[2]);
+				}
+				break;
+			case 'sethtch':
+				setAnnoucementChannel(channelID);
+				break;
 			default:
 				listCommands(channelID);
          }
@@ -246,12 +261,14 @@ function listCommands(channelID){
 	helpMsg += '**!partylist**: This will list all currently created parties.\n';
 	helpMsg += '**!partydetail {Party ID}**: This will list details for the specified party.\n';
 	helpMsg += '**!partycreate** *{OPTIONAL: Party ID}*: This will allow creation of a new party.\n';
+	helpMsg += '**!partyexpand {Party ID} {Party Size}**: This will set the size of the party (default 6.)\n'
 	helpMsg += '**!partydisband {Party ID}**: This will disband the specified party.\n';
 	helpMsg += '**!partydisbandall**: This will disband all parties.\n';
 	helpMsg += '**!partyjoin {Party ID}** *{OPTIONAL: User}*: This will allow the user to join the specified party.\n';
 	helpMsg += '**!partyautojoin** *{OPTIONAL: User}*: This will enroll the user in the first available party slot.\n';
 	helpMsg += '**!partyleave** *{OPTIONAL: User}*: This will allow the user to leave their party.\n';
-	helpMsg += '**!partytoggleevent** : This will switch the hot time event timer on/off.\n';
+	helpMsg += '**!partytoggleevent** : This will toggle the hot time event for timer purposes.\n';
+	helpMsg += '**!partysethtch** : This will set hot time announcements to display on the current channel.\n';
 	if(motivationList.length > 0){
 		helpMsg += '**!partymotivate**: Motivate your party!\n';
 	}
@@ -270,12 +287,12 @@ function toggleEvent(channelID){
 	sendMsg(channelID, 'Event Time is turned ' + msg);
 }
 
-//find partyID for first party with < 6 members. Join it.
+//find partyID for first party with < [party size] members. Join it.
 //Executed: autojoin
 function autojoinParty(channelID, user, roles){
 	var partyID = -1;
-	for (var i = 0; i <partylist.length; i++){
-		if(partylist[i].members.length < 6){
+	for (var i = 0; i < partylist.length; i++){
+		if(partylist[i].members.length < partylist[i].partysize){
 			partyID = i;
 			break;
 		}
@@ -296,7 +313,7 @@ function signupForParty(channelID, partyID, user, roles){
 	if(partylist[partyNum] == undefined){
 		sendMsg(channelID, ':scream: Party join failed. Party **' + partyID +'** does not exist.');
 	} else {	
-		if(partylist[partyNum].members.length == 6){
+		if(partylist[partyNum].members.length == partylist[partyNum].partysize){
 			sendMsg(channelID, ':scream: Party join failed. Party **' + partyID +'** is full.');
 		} else {
 			var inPartyID = '';
@@ -316,7 +333,7 @@ function signupForParty(channelID, partyID, user, roles){
 				partylist[partyNum].members[partyMemberID] = user;
 				partylist[partyNum].roles[partyMemberID] = roles;
 				var members = partyMemberID + 1;
-				if(members == 6){
+				if(members == partylist[partyNum].partysize){
 					sendMsg(channelID, ':heart: **' + user + '** has joined the party! Party **' + partyID + '** is now full!');
 				}else{
 					sendMsg(channelID, ':heart: **' + user + '** has joined the party! Party **' + partyID + '** now has ' + members + ' member(s).');
@@ -348,7 +365,7 @@ function createPartyWithID(channelID, partyID){
 	
 	if(!partyExists){
 		sendMsg(channelID, ':thumbsup: Your party has been created and has 0 members. Your Party ID is: **' + partyID + '**');
-		var newparty = {id: partyID, members:[], roles:[]};
+		var newparty = {id: partyID, members:[], roles:[], partysize: 6};
 		partylist.push(newparty);
 	}
 }
@@ -406,7 +423,7 @@ function sendPartyList(channelID){
 		}
 		
 		for(var party = 0; party < partylist.length; party++){	
-			partyListMsg = partyListMsg + '\n Party **' + partylist[party].id + '** ('+partylist[party].members.length+'\\6)' 
+			partyListMsg = partyListMsg + '\n Party **' + partylist[party].id + '** ('+partylist[party].members.length+'\\'+ partylist[party].partysize +')' 
 			if(partylist[party].members.length > 0){
 				partyListMsg += ': ';
 			}
@@ -428,7 +445,7 @@ function sendPartyDetail(channelID, partyID){
 	if(partyIndex == -1){
 		sendMsg(channelID, ':scream: Unable to find Party **' + partyID +'**!');
 	}else{
-		partyListMsg = 'Party **' + partyID + '** (' + partylist[partyIndex].members.length + '\\6)';
+		partyListMsg = 'Party **' + partyID + '** (' + partylist[partyIndex].members.length + '\\'+ partylist[partyIndex].partysize +')';
 		for(var i = 0 ; i < partylist[partyIndex].members.length; i++){
 			memberNum = i + 1;
 			partyListMsg += '\n**' + partylist[partyIndex].members[i] + '**';
@@ -571,4 +588,25 @@ function addMotivation(channelID, motivation){
 			addToMotivationList(motivation);
 			sendMsg(channelID, ':thumbsup: This motivation has been added.');
 		}
+}
+
+/** Added for v 1.1 **/
+//sets a party size.
+function expandParty(channelID, partyID, partySize){
+	var partyIndex = getPartyNum(partyID);
+	if(partyIndex == -1){
+		sendMsg(channelID, ':scream: Unable to find Party **' + partyID +'**!');
+	}else if(Number.isNaN(partySize) || partySize < 1){
+		sendMsg(channelID, ':scream: Provided party size must be a number > 0**!');
+	}else{
+		partylist[partyIndex].partysize = partySize;
+		sendMsg(channelID, ':thumbsup: Party ' + partyID +' has been set to allow for ' + partySize +' members.');
+	}
+}
+
+/** Added for v 1.2 **/
+//sets the channel for timer announcements.
+function setAnnoucementChannel(channelID){
+	timerChannel = channelID;
+	sendMsg(channelID, ':thumbsup: Announcements will now display in this channel.');
 }
