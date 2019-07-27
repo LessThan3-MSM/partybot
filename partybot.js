@@ -1,7 +1,7 @@
 /**
 * Application: partybot.js
-* Version: 1.5
-* Date: 07/26/2019
+* Version: 1.6
+* Date: 07/27/2019
 * Author: Liz (Klossi)
 **/
 
@@ -23,14 +23,15 @@ var bot = new Discord.Client({
 
 /***Global Variables***/
 var serverTimeZone = 'America/Anchorage'; //This is Scania's Server time. Modify as needed.
-var motivationLocation = '/home/ubuntu/bots/partybot/motivations.txt'; //Update this based on your server path.
+var motivationLocation = './motivations.txt'; 
 
 var eventTime = false; //if there is a server event going on. Used by timer functions.
-var timerChannel; //the channel to send timer messages to. Initialized on first message.
+var timerChannel = '495002720370163713'; //the channel to send timer messages to. Defaulted to LT3 Party Channel.
 
 var guildID = ''; //the server ID to use when determining user's roles. Initialized on first message.
 
-var partylist = []; // the list of all parties.
+var partyLocation = './parties.json'; //where to export parties to.
+var partylist = require(partyLocation);
 
 var motivationNum = 0; //the current motivation to display. Cycles so we get new pics.
 var motivationList = []; //the list of all motivations. Read in from file on bot initialization.
@@ -151,6 +152,7 @@ bot.on('ready', function (evt) {
     logger.info('PartyBot Connected');
 	guildID = evt.d.guilds[0].id; 
 	prepareMotivationList();
+	importParties();
 });
 
 bot.on('disconnect', function(erMsg, code) {
@@ -167,10 +169,10 @@ bot.on('disconnect', function(erMsg, code) {
 * If no command is found, the bot displays a list of available commands to the user.
 */
 bot.on('message', function (user, userID, channelID, message, evt) {
-	//Stores the channel for sending hot time messages.
-	if(timerChannel == undefined){
-		timerChannel = channelID;
-	}
+	//Stores the channel for sending hot time messages. REMOVED 1.6 -> changed to default to LT3 Party Ch.
+	//if(timerChannel == undefined){
+	//	timerChannel = channelID;
+	// }
 	//if a party command is found, execute the appropriate method.
     if (message.substring(0, 6) == '!party' || message.substring(0,6) == '!Party') {		
         var args = message.substring(6).split(' ');
@@ -260,6 +262,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 				break;
 			case 'sethtch':
 				setAnnoucementChannel(channelID);
+				break;
+			case 'export':
+				exportParties(channelID);
 				break;
 			default:
 				listCommands(channelID);
@@ -593,7 +598,7 @@ function addToMotivationList(line){
 //writes out to the motivation text file
 function writeToMotivationFile(motivation){
 	var fs = require('fs');
-	fs.appendFile(motivationLocation, '\n' + motivation, 
+	fs.appendFile(motivationLocation, '\r\n' + motivation, 
 		function (err) {
 			return err;
 	});
@@ -649,4 +654,24 @@ function isNSFW(){
 	var eastCoast = new Date().toLocaleString("en-US", {timeZone: 'America/New_York'});
 	eastCoast = new Date(eastCoast);
 	return eastCoast.getHours() > 8 && eastCoast.getHours() < 21 && eastCoast.getDay()!= 6 && eastCoast.getDay()!=0;
+}
+
+/** Added for v 1.6 - Parties will write/read to file. Sick of re-adding every time. **/
+function exportParties(channelID){
+	var exported = true;
+	require('fs').writeFile(
+		partyLocation, JSON.stringify(partylist, null, 4), 'utf-8',
+
+    function (err) {
+        if (err) {
+            sendMsg(channelID, ':scream: Unable to export parties.');
+			exported = false;
+        }
+    }
+	
+	);
+	
+	if(exported){
+		sendMsg(channelID, ':thumbsup: Parties successfully exported to server file.');
+	}
 }
