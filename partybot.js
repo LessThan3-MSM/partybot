@@ -43,7 +43,7 @@ var CronJob = require('cron').CronJob;
 	
 /** 1.4 SAFARI TIMERS **/
 //10:00 18:00 22:00
-var safari = '\:vamos: SAFARI IS NOW OPEN! 10 minutes before closure. @here';
+var safari = '<:vamos:536431874646736933> SAFARI IS NOW OPEN! 10 minutes before closure. @here';
 
 var safariTimer = new CronJob('0 10,18,22 * * *', function() { 
 	if(timerChannel != undefined){					
