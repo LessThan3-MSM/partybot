@@ -648,5 +648,5 @@ function hotTommy(channelID){
 function isNSFW(){
 	var eastCoast = new Date().toLocaleString("en-US", {timeZone: 'America/New_York'});
 	eastCoast = new Date(eastCoast);
-	return eastCoast.getHours() > 8 && eastCoast.getHours() < 21;
+	return eastCoast.getHours() > 8 && eastCoast.getHours() < 21 && eastCoast.getDay()!= 6 && eastCoast.getDay()!=0;
 }
