@@ -1,7 +1,7 @@
 /**
 * Application: partybot.js
-* Version: 1.1
-* Date: 07/20/2019
+* Version: 1.5
+* Date: 07/26/2019
 * Author: Liz (Klossi)
 **/
 
@@ -41,6 +41,21 @@ var motivationList = []; //the list of all motivations. Read in from file on bot
 var CronJob = require('cron').CronJob;
 	
 	
+/** 1.4 SAFARI TIMERS **/
+//10:00 18:00 22:00
+var safari = '\:vamos: SAFARI IS NOW OPEN! 10 minutes before closure. @here';
+
+var safariTimer = new CronJob('0 10,18,22 * * *', function() { 
+	if(timerChannel != undefined){					
+		sendMsg(timerChannel, safari);
+	}else{
+		console.log('No Channel Defined. Unable to send safari message.');
+	}
+}, null, true, serverTimeZone);
+
+safariTimer.start();
+/**END 1.4 **/
+
 //Hot Time WARNINGs
 var hottime30warning = ':raised_hands: HOT TIME WILL START IN 30 MINUTES @here';
 var hottime15warning = ':raised_hands: HOT TIME WILL START IN 15 MINUTES @here';
@@ -236,11 +251,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 			case 'toggleevent':
 				toggleEvent(channelID);
 				break;
-			case 'expand':
+			case 'resize':
 				if(args[1] == undefined || args[2] == undefined){
-					sendMsg(channelID, ':no_entry: Usage: partyexpand {Party ID} {Party Size}.');
+					sendMsg(channelID, ':no_entry: Usage: partyresize {Party ID} {Party Size}.');
 				}else{
-					expandParty(channelID, args[1], args[2]);
+					resizeParty(channelID, args[1], args[2]);
 				}
 				break;
 			case 'sethtch':
@@ -249,7 +264,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 			default:
 				listCommands(channelID);
          }
-     }
+	 } else if(message.substring(0,9) == '!hottommy'){
+		 hotTommy(channelID);
+	 }
 });
 
 /** PARTY BOT COMMANDS **/
@@ -261,7 +278,7 @@ function listCommands(channelID){
 	helpMsg += '**!partylist**: This will list all currently created parties.\n';
 	helpMsg += '**!partydetail {Party ID}**: This will list details for the specified party.\n';
 	helpMsg += '**!partycreate** *{OPTIONAL: Party ID}*: This will allow creation of a new party.\n';
-	helpMsg += '**!partyexpand {Party ID} {Party Size}**: This will set the size of the party (default 6.)\n'
+	helpMsg += '**!partyresize {Party ID} {Party Size}**: This will set the size of the party (default 6.)\n'
 	helpMsg += '**!partydisband {Party ID}**: This will disband the specified party.\n';
 	helpMsg += '**!partydisbandall**: This will disband all parties.\n';
 	helpMsg += '**!partyjoin {Party ID}** *{OPTIONAL: User}*: This will allow the user to join the specified party.\n';
@@ -271,6 +288,7 @@ function listCommands(channelID){
 	helpMsg += '**!partysethtch** : This will set hot time announcements to display on the current channel.\n';
 	if(motivationList.length > 0){
 		helpMsg += '**!partymotivate**: Motivate your party!\n';
+		helpMsg += '**!hottommy** Motivate your party NSFW!\n';
 	}
 	helpMsg += '**!partyaddmotivation {URL/Text}**: This will add a motivation.';
 	sendMsg(channelID, helpMsg);
@@ -531,6 +549,9 @@ function sendMsg(channelID, amessage){
 
 //Will send a random motivational message to the discord channel.
 function motivateParty(channelID){
+	if(motivationNum == 0 && isNSFW()){ //adding 1.5 for Halli. May need ability to flag individual pics as NSFW in future.
+		motivationNum++;
+	}
 	var apic = motivationList[motivationNum];
 	motivationNum++;
 	if(motivationNum == motivationList.length){
@@ -592,7 +613,7 @@ function addMotivation(channelID, motivation){
 
 /** Added for v 1.1 **/
 //sets a party size.
-function expandParty(channelID, partyID, partySize){
+function resizeParty(channelID, partyID, partySize){
 	var partyIndex = getPartyNum(partyID);
 	if(partyIndex == -1){
 		sendMsg(channelID, ':scream: Unable to find Party **' + partyID +'**!');
@@ -609,4 +630,23 @@ function expandParty(channelID, partyID, partySize){
 function setAnnoucementChannel(channelID){
 	timerChannel = channelID;
 	sendMsg(channelID, ':thumbsup: Announcements will now display in this channel.');
+}
+
+/** Added for v 1.3 **/
+//command to display hot tommy specifically.
+function hotTommy(channelID){
+	if(!isNSFW()){
+		var apic = motivationList[0];
+		sendMsg(channelID, apic);
+	} else {
+		sendMsg(channelID, ':thumbsdown: Hot Tommy respects the workplace environment.');
+	}
+}
+
+/** Added for v 1.5 **/
+//Per Halli, work time is M-F 7AM PST - 5PM PST. Starting at 6AM PST to accomodate east coasters. (9AM EST - 8PM EST)
+function isNSFW(){
+	var eastCoast = new Date().toLocaleString("en-US", {timeZone: 'America/New_York'});
+	eastCoast = new Date(eastCoast);
+	return eastCoast.getHours() > 8 && eastCoast.getHours() < 21;
 }
