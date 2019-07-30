@@ -1,7 +1,7 @@
 /**
 * Application: partybot.js
-* Version: 1.6
-* Date: 07/27/2019
+* Version: 1.7
+* Date: 07/29/2019
 * Author: Liz (Klossi)
 **/
 
@@ -41,10 +41,24 @@ var motivationList = []; //the list of all motivations. Read in from file on bot
 /** This REQUIRES cron npm to be installed **/
 var CronJob = require('cron').CronJob;
 	
+/** 1.7 CHECK IN RESET **/
+//0:00
+var safari = '<:vamos:536431874646736933> :train: SAFARI IS NOW OPEN! 10 minutes before closure. @Guild Member';
+
+var safariTimer = new CronJob('0 0 * * *', function() { 
+	for(var i = 0; i < partylist.length; i++){
+		for( var j = 0; j < partylist[i].checkedin.length; j++){
+			partylist[i].checkedin[j] = false;
+		}
+	}
+}, null, true, serverTimeZone);
+
+safariTimer.start();
+/**END 1.4 **/
 	
 /** 1.4 SAFARI TIMERS **/
 //10:00 18:00 22:00
-var safari = '<:vamos:536431874646736933> SAFARI IS NOW OPEN! 10 minutes before closure. @here';
+var safari = '<:vamos:536431874646736933> :train: SAFARI IS NOW OPEN! 10 minutes before closure. @Guild Member';
 
 var safariTimer = new CronJob('0 10,18,22 * * *', function() { 
 	if(timerChannel != undefined){					
@@ -58,8 +72,8 @@ safariTimer.start();
 /**END 1.4 **/
 
 //Hot Time WARNINGs
-var hottime30warning = ':raised_hands: HOT TIME WILL START IN 30 MINUTES @here';
-var hottime15warning = ':raised_hands: HOT TIME WILL START IN 15 MINUTES @here';
+var hottime30warning = ':raised_hands: HOT TIME WILL START IN 30 MINUTES @Guild Member';
+var hottime15warning = ':raised_hands: HOT TIME WILL START IN 15 MINUTES @Guild Member';
 	
 //Timer for 07:30, 18:30, 07:45, 18:45 (15 and 30 til the hour hot times start up)
 //Event Time (& Sa,Su) = 7,18; Otherwise (M-Tr) = 9,18
@@ -92,7 +106,7 @@ var timerHTWarn = new CronJob('30,45 7,9,18 * * *', function() {
 timerHTWarn.start();
 	
 //Hot Time has STARTED
-var hottimestart = ':tada: HOT TIME HAS STARTED @here';
+var hottimestart = ':tada: HOT TIME HAS STARTED @Guild Member';
 	
 //Timer for 08:00, 10:00, 19:00
 //Event Timer (& Sa,Su) = 8,19; Otherwise (M-Tr) = 10,19
@@ -116,7 +130,7 @@ var timerHTStart = new CronJob('0 8,10,19 * * *', function() {
 timerHTStart.start();
 
 //Hot Time has ENDED
-var hottimeend = ':sob: HOT TIME HAS ENDED @here';
+var hottimeend = ':sob: HOT TIME HAS ENDED @Guild Member';
 	
 //Timer for 14:00, 0:00, 2:00
 //Event Timer (& Sa,Su) = 2,14; Otherwise (M-Tr) = 0,14
@@ -152,7 +166,6 @@ bot.on('ready', function (evt) {
     logger.info('PartyBot Connected');
 	guildID = evt.d.guilds[0].id; 
 	prepareMotivationList();
-	importParties();
 });
 
 bot.on('disconnect', function(erMsg, code) {
@@ -261,10 +274,32 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 				}
 				break;
 			case 'sethtch':
-				setAnnoucementChannel(channelID);
+				setAnnouncementChannel(channelID);
 				break;
 			case 'export':
 				exportParties(channelID);
+				break;
+			case 'checkin':
+				if(args[1] == undefined){
+					if (evt.d.member.nick != null ){
+						changeCheckStatus(channelID, evt.d.member.nick, true);
+					}else{
+						changeCheckStatus(channelID, user, true);
+					}	
+				} else {
+					changeCheckStatus(channelID, args[1], true);
+				}
+				break;
+			case 'checkout':
+				if(args[1] == undefined){
+					if (evt.d.member.nick != null ){
+						changeCheckStatus(channelID, evt.d.member.nick, false);
+					}else{
+						changeCheckStatus(channelID, user, false);
+					}
+				} else {
+					changeCheckStatus(channelID, args[1], false);
+				}
 				break;
 			default:
 				listCommands(channelID);
@@ -291,6 +326,8 @@ function listCommands(channelID){
 	helpMsg += '**!partyleave** *{OPTIONAL: User}*: This will allow the user to leave their party.\n';
 	helpMsg += '**!partytoggleevent** : This will toggle the hot time event for timer purposes.\n';
 	helpMsg += '**!partysethtch** : This will set hot time announcements to display on the current channel.\n';
+	helpMsg += '**!partycheckin** *{OPTIONAL: User}*: This will check you (or the specified user) in to your party.\n';
+	helpMsg += '**!partycheckout** *{OPTIONAL: User}*: This will check you (or the specified user) out of your party.\n';
 	if(motivationList.length > 0){
 		helpMsg += '**!partymotivate**: Motivate your party!\n';
 		helpMsg += '**!hottommy** Motivate your party NSFW!\n';
@@ -355,6 +392,7 @@ function signupForParty(channelID, partyID, user, roles){
 				partyMemberID = partylist[partyNum].members.length;
 				partylist[partyNum].members[partyMemberID] = user;
 				partylist[partyNum].roles[partyMemberID] = roles;
+				partylist[partyNum].checkedin[partyMemberID] = false;
 				var members = partyMemberID + 1;
 				if(members == partylist[partyNum].partysize){
 					sendMsg(channelID, ':heart: **' + user + '** has joined the party! Party **' + partyID + '** is now full!');
@@ -388,7 +426,7 @@ function createPartyWithID(channelID, partyID){
 	
 	if(!partyExists){
 		sendMsg(channelID, ':thumbsup: Your party has been created and has 0 members. Your Party ID is: **' + partyID + '**');
-		var newparty = {id: partyID, members:[], roles:[], partysize: 6};
+		var newparty = {id: partyID, members:[], roles:[], checkedin:[], partysize: 6};
 		partylist.push(newparty);
 	}
 }
@@ -403,6 +441,8 @@ function leaveParty(channelID, user){
 		for (var i = 0; i < partylist[partyNum].members.length; i++){
 			if(partylist[partyNum].members[i] == user){
 				partylist[partyNum].members.splice(i,1);
+				partylist[partyNum].roles.splice(i,1);
+				partylist[partyNum].checkedin.splice(i,1);
 			}
 		}
 		var members = partylist[partyNum].members.length;
@@ -471,7 +511,7 @@ function sendPartyDetail(channelID, partyID){
 		partyListMsg = 'Party **' + partyID + '** (' + partylist[partyIndex].members.length + '\\'+ partylist[partyIndex].partysize +')';
 		for(var i = 0 ; i < partylist[partyIndex].members.length; i++){
 			memberNum = i + 1;
-			partyListMsg += '\n**' + partylist[partyIndex].members[i] + '**';
+			partyListMsg += '\n**' + getIcon(partylist[partyIndex].checkedin[i]) + partylist[partyIndex].members[i] + '**';
 			if(partylist[partyIndex].roles[i].length > 0){
 				partyListMsg += ': *'+ getRoleList(partylist[partyIndex].roles[i]) + '*'; //convert number to server role?
 			}
@@ -480,7 +520,38 @@ function sendPartyDetail(channelID, partyID){
 	}
 }
 
+//Checks you in to or out of your party. This is reset at server time to being checked out.
+//Executed: checkin, checkout
+function changeCheckStatus(channelID, name, checked){
+	var found = false;
+	for(var p = 0; p < partylist.length; p++){
+		for (var i = 0; i < partylist[p].members.length; i++){
+			if(partylist[p].members[i] == name) {
+				partylist[p].checkedin[i] = checked;
+				found = true;
+			}
+		}
+	}
+	
+	if(found){
+		phrase = checked ? 'in to' : 'out of';
+		sendMsg(channelID, getIcon(checked) + name + ' has been checked ' + phrase + ' the party!');
+	} else {
+		sendMsg(channelID, ':scream: Unable to find **' + name +'** in any party!');
+	}
+}
+
+
 /** HELPER METHODS **/
+
+//Get the correct checkedin icon.
+function getIcon(checkedin){
+	if(checkedin){
+		return ':white_check_mark:';
+	} else {
+		return ':x:';
+	}
+}
 
 //Helper method. takes the partyID and gets the array index.
 function getPartyNum(partyID){
@@ -632,7 +703,7 @@ function resizeParty(channelID, partyID, partySize){
 
 /** Added for v 1.2 **/
 //sets the channel for timer announcements.
-function setAnnoucementChannel(channelID){
+function setAnnouncementChannel(channelID){
 	timerChannel = channelID;
 	sendMsg(channelID, ':thumbsup: Announcements will now display in this channel.');
 }
