@@ -1,6 +1,6 @@
 /**
 * Application: partybot.js
-* Version: 1.9
+* Version: 1.10
 * Date: 08/22/2019
 * Author: Liz (Klossi)
 **/
@@ -40,6 +40,31 @@ var motivationList = []; //the list of all motivations. Read in from file on bot
 /** The Timers MUST be global and cannot be inside a JS method. This puts them out of scope.**/
 /** This REQUIRES cron npm to be installed **/
 var CronJob = require('cron').CronJob;
+
+/** 1.10 KEMDI **/
+//11:30, 15:30, 19:30, 22:30
+var kemdiMsg = ':dog: KEMDI IS NOW OPEN! 10 minutes before closure. @everyone';
+var kemdiWarningMsg = 'Kemdi will open in 5 minutes! @here';
+var kemdiTimer = new CronJob('30,25 11,15,19,22 * * *', function() { 
+	if(timerChannel != undefined){			
+		var serverTime = new Date().toLocaleString("en-US", {timeZone: serverTimeZone});
+		serverTime = new Date(serverTime);			
+			
+		var minutes = serverTime.getMinutes();
+		var message = '';
+		if(minutes == 25){
+			message = kemdiWarningMsg;
+		}else{
+			message = kemdiMsg;
+		}
+		
+		sendMsg(timerChannel, message);		
+	}else{
+		console.log('No Channel Defined. Unable to send Kemdi message.');
+	}
+}, null, true, serverTimeZone);
+
+kemdiTimer.start();
 	
 /** 1.7 CHECK IN RESET **/
 //0:00
@@ -410,7 +435,7 @@ function leaveParty(channelID, user){
 		sendMsg(channelID, ':scream: Party leave failed. User does not exist in any party.');
 	} else {	
 		for (var i = 0; i < partylist[partyNum].members.length; i++){
-			if(partylist[partyNum].members[i] == user){
+			if(partylist[partyNum].members[i].toLowerCase() == user.toLowerCase()){
 				partylist[partyNum].members.splice(i,1);
 				partylist[partyNum].roles.splice(i,1);
 				partylist[partyNum].checkedin.splice(i,1);
@@ -499,7 +524,7 @@ function changeCheckStatus(channelID, name){
 	
 	for(var p = 0; p < partylist.length; p++){
 		for (var i = 0; i < partylist[p].members.length; i++){
-			if(partylist[p].members[i] == name) {
+			if(partylist[p].members[i].toLowerCase() == name.toLowerCase()) {
 				newStatus = !partylist[p].checkedin[i];
 				partylist[p].checkedin[i] = newStatus;
 				found = true;
@@ -569,7 +594,7 @@ function getPartyIDNum(user){
 	var partyIDNum = -1;
 	for(var p = 0; p < partylist.length; p++){
 		for (var i = 0; i < partylist[p].members.length; i++){
-			if(partylist[p].members[i] == user) {
+			if(partylist[p].members[i].toLowerCase() == user.toLowerCase()) {
 				partyIDNum = p;
 			}
 		}
