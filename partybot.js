@@ -1,6 +1,6 @@
 /**
 * Application: partybot.js
-* Version: 1.10
+* Version: 1.12
 * Date: 08/22/2019
 * Author: Liz (Klossi)
 **/
@@ -41,31 +41,34 @@ var motivationList = []; //the list of all motivations. Read in from file on bot
 /** This REQUIRES cron npm to be installed **/
 var CronJob = require('cron').CronJob;
 
-/** 1.10 KEMDI **/
-//11:30, 15:30, 19:30, 22:30
-var kemdiMsg = ':dog: KEMDI IS NOW OPEN! 10 minutes before closure. @everyone';
-var kemdiWarningMsg = 'Kemdi will open in 5 minutes! @here';
-var kemdiTimer = new CronJob('30,25 11,15,19,22 * * *', function() { 
+/** 1.10 KEMDI, 1.11 COMMENTED OUT KEMDI, 1.12 OVERWROTE FOR STORE **/
+//11:00, 16:00, 19:00
+var specialEventMsg = ':gift: SURPRISE STORE IS NOW OPEN! @everyone';
+var specialEventWarningMsg = ':gift: Surprise Store will open in 5 minutes! @here';
+var specialEventTimer = new CronJob('00,55 10,11,15,16,18,19 * * *', function() { 
 	if(timerChannel != undefined){			
 		var serverTime = new Date().toLocaleString("en-US", {timeZone: serverTimeZone});
 		serverTime = new Date(serverTime);			
 			
-		var minutes = serverTime.getMinutes();
+		var minutes = serverTime.getMinutes();		
 		var message = '';
-		if(minutes == 25){
-			message = kemdiWarningMsg;
-		}else{
-			message = kemdiMsg;
+		if(minutes == 55){
+			var hour = serverTime.getHours();
+			if (hour == 10 || hour == 15 || hour ==18){
+				message = specialEventWarningMsg;
+			}
+		}else {
+			message = specialEventMsg;
 		}
 		
 		sendMsg(timerChannel, message);		
 	}else{
-		console.log('No Channel Defined. Unable to send Kemdi message.');
+		console.log('No Channel Defined. Unable to send special event message.');
 	}
 }, null, true, serverTimeZone);
 
-kemdiTimer.start();
-	
+specialEventTimer.start();
+
 /** 1.7 CHECK IN RESET **/
 //0:00
 var resetTimer = new CronJob('0 0 * * *', function() { 
