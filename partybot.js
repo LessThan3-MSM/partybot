@@ -1,7 +1,7 @@
 /**
 * Application: partybot.js
 * Version: 1.12
-* Date: 08/22/2019
+* Date: 10/05/2019
 * Author: Liz (Klossi)
 **/
 
@@ -57,8 +57,10 @@ var specialEventTimer = new CronJob('00,55 10,11,15,16,18,19 * * *', function() 
 			if (hour == 10 || hour == 15 || hour ==18){
 				message = specialEventWarningMsg;
 			}
-		}else {
-			message = specialEventMsg;
+		}else{
+			if (hour == 11 || hour == 16 || hour == 19){
+				message = specialEventMsg;
+			}
 		}
 		
 		sendMsg(timerChannel, message);		
