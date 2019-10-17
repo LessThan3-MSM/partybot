@@ -44,18 +44,34 @@ var CronJob = require('cron').CronJob;
 var timersLocation = './timers.json'; //where to export the timers to.
 var timerList = require(timersLocation);
 
-for(var i = 0; i < timerList.length; i++){	
-console.log('Timer Created: ' + timerList[i].cron + timerList[i].message);
-	var aTimer = new CronJob(timerList[i].cron, function() {		
-	if(timerChannel != undefined){			
-		sendMsg(timerChannel, "AN EVENT IS HAPPENING");		
-	}else{
-		console.log('No Channel Defined. Unable to send special event message.');
-	}
-}, null, true, serverTimeZone);
+//Because there is no way to make messages dynamic (inner scope of CronJob function() prevents message being passed in) - just making 2 static event timers manipulated by file.) 
+//for(var i = 0; i < timerList.length; i++){
+if(timerList[0].active){	
+	console.log('Event Warning Timer Created: ' + timerList[0].cron + timerList[0].message);
+	var eventWarningTimer = new CronJob(timerList[0].cron, function() {		
+		if(timerChannel != undefined){			
+			sendMsg(timerChannel, timerList[0].message);		
+		}else{
+			console.log('No Channel Defined. Unable to send special event message.');
+		}
+	}, null, true, serverTimeZone);
 
-	aTimer.start();	
+	eventWarningTimer.start();	
 }
+
+if(timerList[1].active){
+	console.log('Event Timer Created: ' + timerList[1].cron + timerList[1].message);
+		var eventTimer = new CronJob(timerList[1].cron, function() {		
+		if(timerChannel != undefined){			
+			sendMsg(timerChannel, timerList[1].message);		
+		}else{
+			console.log('No Channel Defined. Unable to send special event message.');
+		}
+	}, null, true, serverTimeZone);
+
+	eventTimer.start();
+}
+//}
 /** 1.10 KEMDI, 1.11 COMMENTED OUT KEMDI, 1.12 OVERWROTE FOR STORE **/
 //11:00, 16:00, 19:00
 /*

@@ -1,1 +1,1 @@
-[{"id":"test","cron":"* * * * *","message":"TEST TIMER"},{"id":"test2","cron":"* * * * *","message":"TEST TIMER 2"}]
+[{"id":"eventwarning","cron":"00 00 00 * *","message":"TEST TIMER","active":false},{"id":"eventtimer","cron":"00 00 00 * *","message":"TEST TIMER 2", "active":false}]
