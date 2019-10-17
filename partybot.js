@@ -1,7 +1,7 @@
 /**
 * Application: partybot.js
-* Version: 1.12
-* Date: 10/05/2019
+* Version: 1.13
+* Date: 10/16/2019
 * Author: Liz (Klossi)
 **/
 
@@ -43,6 +43,7 @@ var CronJob = require('cron').CronJob;
 
 /** 1.10 KEMDI, 1.11 COMMENTED OUT KEMDI, 1.12 OVERWROTE FOR STORE **/
 //11:00, 16:00, 19:00
+/*
 var specialEventMsg = ':gift: SURPRISE STORE IS NOW OPEN! @everyone';
 var specialEventWarningMsg = ':gift: Surprise Store will open in 5 minutes! @here';
 var specialEventTimer = new CronJob('00,55 10,11,15,16,18,19 * * *', function() { 
@@ -70,6 +71,7 @@ var specialEventTimer = new CronJob('00,55 10,11,15,16,18,19 * * *', function() 
 }, null, true, serverTimeZone);
 
 specialEventTimer.start();
+*/
 
 /** 1.7 CHECK IN RESET **/
 //0:00
@@ -201,42 +203,45 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 	// }
 	//if a party command is found, execute the appropriate method.
     if (message.substring(0, 6) == '!party' || message.substring(0,6) == '!Party') {		
-        var args = message.substring(6).split(' ');
-        var cmd = args[0];
+        //var args = message.substring(6).split(' ');
+		var splitArgs = message.substring(6).replace(/\s/,'&').split('&');
+        var cmd = splitArgs[0];
+		var params = splitArgs[1];
         switch(cmd) {
 			case 'detail':
-				if(args[1] == undefined){
+				if(params == undefined){
 					sendMsg(channelID, ':no_entry: Usage: partydetail {PartyID}.');
 				}else {
-					sendPartyDetail(channelID, args[1]);
+					sendPartyDetail(channelID, params);
 				}
 				break;
             case 'list':
 				sendPartyList(channelID);  
 				break;
 			case 'create':
-				if(args[1] != undefined){
-					createPartyWithID(channelID, args[1]);
+				if(params != undefined){
+					createPartyWithID(channelID, params);
 				}else{
 					createParty(channelID);
 				}
 				break;
 			case 'join':
-				if(args[1] == undefined){
+				if(params == undefined){
 					sendMsg(channelID, ':no_entry: Usage: partyjoin {PartyID}.');
 				}else { 
-					if(args[2] != undefined){ //joining as someone else.
-						signupForParty(channelID,args[1],args[2],[]); 
+					var splitParms = params.replace(/\s/,'&').split('&');
+					if(splitParms[1] != undefined){ //joining as someone else.
+						signupForParty(channelID,splitParms[0],splitParms[1],[]); 
 					}else if (evt.d.member.nick != null ){ //joining as yourself (has a server nickname)
-						signupForParty(channelID,args[1],evt.d.member.nick,evt.d.member.roles);
+						signupForParty(channelID,params,evt.d.member.nick,evt.d.member.roles);
 					}else{ //joining as yourself (no server nickname)
-						signupForParty(channelID,args[1],user,evt.d.member.roles);
+						signupForParty(channelID,params,user,evt.d.member.roles);
 					}
 				}
 				break;
 			case 'autojoin':
-				if(args[1] != undefined){
-					autojoinParty(channelID,args[1]);
+				if(params != undefined){
+					autojoinParty(channelID,params);
 				}else if (evt.d.member.nick != null ){
 					autojoinParty(channelID,evt.d.member.nick,evt.d.member.roles);
 				}else{
@@ -244,8 +249,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 				}
 				break;
 			case 'leave':
-				if(args[1] != undefined){ //leaving as someone else
-					leaveParty(channelID,args[1]); 
+				if(params != undefined){ //leaving as someone else
+					leaveParty(channelID,params); 
 				} else if (evt.d.member.nick != null ){ //leaving as yourself (has a server nickname)
 					leaveParty(channelID,evt.d.member.nick);
 				} else { //leaving as yourself (no server nickname)
@@ -253,10 +258,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 				}
 				break;
 			case 'disband':
-				if(args[1] == undefined){
+				if(params == undefined){
 					sendMsg(channelID, ':no_entry: Usage: partydisband {PartyID}.');
 				}else {
-					disbandParty(channelID,args[1]);
+					disbandParty(channelID,params);
 				}
 				break;
 			case 'disbandall':
@@ -270,20 +275,25 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 				}
 				break;
 			case 'addmotivation':
-				if(args[1] == undefined){
+				if(params == undefined){
 					sendMsg(channelID, ':no_entry: Usage: partyaddmotivation {URL/Text}.');
 				}else {
-					addMotivation(channelID,args[1]);
+					addMotivation(channelID,params);
 				}
 				break;
 			case 'toggleevent':
 				toggleEvent(channelID);
 				break;
-			case 'resize':
-				if(args[1] == undefined || args[2] == undefined){
+			case 'resize':				
+				if(params == undefined){ 
 					sendMsg(channelID, ':no_entry: Usage: partyresize {Party ID} {Party Size}.');
 				}else{
-					resizeParty(channelID, args[1], args[2]);
+					var splitParms = params.replace(/\s/,'&').split('&');
+					if(splitsParms[1] == undefined){
+						sendMsg(channelID, ':no_entry: Usage: partyresize {Party ID} {Party Size}.');
+					}else{
+						resizeParty(channelID, splitsParms[0], splitsParms[1]);
+					}
 				}
 				break;
 			case 'sethtch':
@@ -293,14 +303,14 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 				exportParties(channelID);
 				break;
 			case 'check':
-				if(args[1] == undefined){
+				if(params == undefined){
 					if (evt.d.member.nick != null ){
 						changeCheckStatus(channelID, evt.d.member.nick);
 					}else{
 						changeCheckStatus(channelID, user);
 					}	
 				} else {
-					changeCheckStatus(channelID, args[1]);
+					changeCheckStatus(channelID, params);
 				}
 				break;
 			default:
