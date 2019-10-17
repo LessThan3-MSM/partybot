@@ -26,7 +26,7 @@ var serverTimeZone = 'America/Anchorage'; //This is Scania's Server time. Modify
 var motivationLocation = './motivations.txt'; 
 
 var eventTime = true; //if there is a server event going on. Used by timer functions.
-var timerChannel = '495002720370163713'; //the channel to send timer messages to. Defaulted to LT3 Party Channel.
+var timerChannel = '495002720370163713'; //the channel to send timer messages to. Defaulted to LT3 Party Channel. //Lt3: 495002720370163713 //sandbox: 604133794274082837
 
 var guildID = ''; //the server ID to use when determining user's roles. Initialized on first message.
 
@@ -41,6 +41,21 @@ var motivationList = []; //the list of all motivations. Read in from file on bot
 /** This REQUIRES cron npm to be installed **/
 var CronJob = require('cron').CronJob;
 
+var timersLocation = './timers.json'; //where to export the timers to.
+var timerList = require(timersLocation);
+
+for(var i = 0; i < timerList.length; i++){	
+console.log('Timer Created: ' + timerList[i].cron + timerList[i].message);
+	var aTimer = new CronJob(timerList[i].cron, function() {		
+	if(timerChannel != undefined){			
+		sendMsg(timerChannel, "AN EVENT IS HAPPENING");		
+	}else{
+		console.log('No Channel Defined. Unable to send special event message.');
+	}
+}, null, true, serverTimeZone);
+
+	aTimer.start();	
+}
 /** 1.10 KEMDI, 1.11 COMMENTED OUT KEMDI, 1.12 OVERWROTE FOR STORE **/
 //11:00, 16:00, 19:00
 /*
