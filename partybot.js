@@ -22,7 +22,7 @@ var bot = new Discord.Client({
 });
 
 /***Global Variables***/
-var serverTimeZone = 'Etc/GMT+9';//'America/Anchorage'; //This is Scania's Server time. Modify as needed.
+var serverTimeZone = 'Pacific/Pitcairn';//'America/Anchorage'; //This is Scania's Server time. Modify as needed.
 var motivationLocation = './motivations.txt'; 
 
 var eventTime = true; //if there is a server event going on. Used by timer functions.
