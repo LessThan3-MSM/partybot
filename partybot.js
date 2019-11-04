@@ -1,7 +1,7 @@
 /**
 * Application: partybot.js
-* Version: 1.13
-* Date: 10/16/2019
+* Version: 1.14
+* Date: 11/03/2019
 * Author: Liz (Klossi)
 **/
 
@@ -22,7 +22,7 @@ var bot = new Discord.Client({
 });
 
 /***Global Variables***/
-var serverTimeZone = 'America/Anchorage'; //This is Scania's Server time. Modify as needed.
+var serverTimeZone = 'Etc/GMT+9';//'America/Anchorage'; //This is Scania's Server time. Modify as needed.
 var motivationLocation = './motivations.txt'; 
 
 var eventTime = true; //if there is a server event going on. Used by timer functions.
