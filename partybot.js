@@ -652,7 +652,10 @@ function getPartyIDNum(user){
 function getRoleList(roleIDs){
 	var roleList = '';
 	for(var i = 0; i < roleIDs.length; i++){
-		roleList += bot.servers[guildID].roles[roleIDs[i]].name
+		var serverRole = bot.servers[guildID].roles[roleIDs[i]];
+		if(serverRole != undefined){
+			roleList += bot.servers[guildID].roles[roleIDs[i]].name;
+		}
 		if( i+1 != roleIDs.length){
 			roleList += ', ';
 		}
